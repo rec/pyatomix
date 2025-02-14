@@ -42,103 +42,104 @@ private:
     std::atomic_flag value = ATOMIC_FLAG_INIT;
 };
 
+template <typename Int>
 class AtomicInt {
 public:
     AtomicInt() : value(0) {}
-    AtomicInt(int64_t value) : value(value) {}
+    AtomicInt(Int value) : value(value) {}
     bool is_lock_free() { return value.is_lock_free(); }
-    int64_t load() { return value.load(std::memory_order_acquire); }
-    void store(int64_t new_val) { value.store(new_val, std::memory_order_release); }
-    int64_t fetch_add(int64_t val) { return value.fetch_add(val, std::memory_order_acq_rel); }
-    int64_t fetch_sub(int64_t val) { return value.fetch_sub(val, std::memory_order_acq_rel); }
-    int64_t exchange(int64_t new_val) { return value.exchange(new_val, std::memory_order_acq_rel); }
-    bool compare_exchange(int64_t expected_val, int64_t new_val) { 
+    Int load() { return value.load(std::memory_order_acquire); }
+    void store(Int new_val) { value.store(new_val, std::memory_order_release); }
+    Int fetch_add(Int val) { return value.fetch_add(val, std::memory_order_acq_rel); }
+    Int fetch_sub(Int val) { return value.fetch_sub(val, std::memory_order_acq_rel); }
+    Int exchange(Int new_val) { return value.exchange(new_val, std::memory_order_acq_rel); }
+    bool compare_exchange(Int expected_val, Int new_val) {
         return value.compare_exchange_strong(expected_val, new_val);
         }
-    bool compare_exchange_weak(int64_t expected_val, int64_t new_val) { 
+    bool compare_exchange_weak(Int expected_val, Int new_val) {
         return value.compare_exchange_weak(expected_val, new_val);
         }
-    bool operator==(int64_t other) const {
+    bool operator==(Int other) const {
         return value == other;
     }
-    bool operator!=(int64_t other) const {
+    bool operator!=(Int other) const {
         return value != other;
     }
-    int64_t operator+(int64_t other) {
+    Int operator+(Int other) {
         return value.load(std::memory_order_acquire) + other;
     }
-    AtomicInt* operator+=(int64_t other) {
+    AtomicInt* operator+=(Int other) {
         value += other;
         return this;
     }
-    int64_t operator-(int64_t other) {
+    Int operator-(Int other) {
         return value.load(std::memory_order_acquire) + other;
     }
-    AtomicInt* operator-=(int64_t other) {
+    AtomicInt* operator-=(Int other) {
         value -= other;
         return this;
     }
-    int64_t rsub(int64_t other) {
+    Int rsub(Int other) {
         return other - value.load(std::memory_order_acquire);
     }
-    int64_t operator*(int64_t other) {
+    Int operator*(Int other) {
         return value.load(std::memory_order_acquire) * other;
     }
-    AtomicInt* operator*=(int64_t other) {
+    AtomicInt* operator*=(Int other) {
         value.exchange(value.load(std::memory_order_acquire) * other, std::memory_order_acq_rel);
         return this;
     }
-    int64_t operator/(int64_t other) {
+    Int operator/(Int other) {
         return value.load(std::memory_order_acquire) / other;
     }
-    AtomicInt* operator/=(int64_t other) {
+    AtomicInt* operator/=(Int other) {
         value.exchange(value.load(std::memory_order_acquire) / other, std::memory_order_acq_rel);
         return this;
     }
-    int64_t rdiv(int64_t other) {
+    Int rdiv(Int other) {
         return other / value.load(std::memory_order_acquire);
     }
-    int64_t operator%(int64_t other) {
+    Int operator%(Int other) {
         return value.load(std::memory_order_acquire) % other;
     }
-    AtomicInt* operator%=(int64_t other) {
+    AtomicInt* operator%=(Int other) {
         value.exchange(value.load(std::memory_order_acquire) % other, std::memory_order_acq_rel);
         return this;
     }
-    int64_t rmod(int64_t other) {
+    Int rmod(Int other) {
         return other % value.load(std::memory_order_acquire);
     }
-    int64_t operator&(int64_t other) {
+    Int operator&(Int other) {
         return value.load(std::memory_order_acquire) & other;
     }
-    AtomicInt* operator&=(int64_t other) {
+    AtomicInt* operator&=(Int other) {
         value &= other;
         return this;
     }
-    int64_t operator|(int64_t other) {
+    Int operator|(Int other) {
         return value.load(std::memory_order_acquire) | other;
     }
-    AtomicInt* operator|=(int64_t other) {
+    AtomicInt* operator|=(Int other) {
         value |= other;
         return this;
     }
-    int64_t operator^(int64_t other) {
+    Int operator^(Int other) {
         return value.load(std::memory_order_acquire) ^ other;
     }
-    AtomicInt* operator^=(int64_t other) {
+    AtomicInt* operator^=(Int other) {
         value ^= other;
         return this;
     }
-    bool lt(int64_t other) {
+    bool lt(Int other) {
         return value.load(std::memory_order_acquire) < other;
     }
-    bool le(int64_t other) {
+    bool le(Int other) {
         return value.load(std::memory_order_acquire) <= other;
     }
-    bool gt(int64_t other) {
+    bool gt(Int other) {
         return value.load(std::memory_order_acquire) > other;
     }
-    bool ge(int64_t other) {
+    bool ge(Int other) {
         return value.load(std::memory_order_acquire) >= other;
     }
     std::string str() {
@@ -148,12 +149,61 @@ public:
         return py::make_tuple(value.load(std::memory_order_acquire));
     }
     void setstate(py::tuple state) {
-        int64_t x = state[0].cast<int64_t>();
+        Int x = state[0].cast<Int>();
         value.store(x);
     }
 
+    static void classDef(::pybind11::module_ &m, const std::string& name) {
+        py::class_<AtomicInt<int>>(m, name)
+            .def(py::init<Int>())
+            .def(py::init<>())
+            .def("is_lock_free", &AtomicInt<Int>::is_lock_free)
+            .def("load", &AtomicInt<Int>::load)
+            .def("store", &AtomicInt<Int>::store)
+            .def("fetch_add", &AtomicInt<Int>::fetch_add)
+            .def("fetch_sub", &AtomicInt<Int>::fetch_sub)
+            .def("exchange", &AtomicInt<Int>::exchange)
+            .def("compare_exchange", &AtomicInt<Int>::compare_exchange)
+            .def("compare_exchange_weak", &AtomicInt<Int>::compare_exchange_weak)
+            .def("__eq__", &AtomicInt<Int>::operator==)
+            .def("__neq__", &AtomicInt<Int>::operator!=)
+            .def("__add__", &AtomicInt<Int>::operator+)
+            .def("__iadd__", &AtomicInt<Int>::operator+=)
+            .def("__sub__", &AtomicInt<Int>::operator-)
+            .def("__isub__", &AtomicInt<Int>::operator-=)
+            .def("__rsub__", &AtomicInt<Int>::rsub)
+            .def("__mul__", &AtomicInt<Int>::operator*)
+            .def("__imul__", &AtomicInt<Int>::operator*=)
+            .def("__rmul__", &AtomicInt<Int>::operator*)
+            .def("__truediv__", &AtomicInt<Int>::operator/)
+            .def("__floordiv__", &AtomicInt<Int>::operator/)
+            .def("__ifloordiv__", &AtomicInt<Int>::operator/=)
+            .def("__itruediv__", &AtomicInt<Int>::operator/=)
+            .def("__rfloordiv__", &AtomicInt<Int>::rdiv)
+            .def("__rtruediv__", &AtomicInt<Int>::rdiv)
+            .def("__mod__", &AtomicInt<Int>::operator%)
+            .def("__imod__", &AtomicInt<Int>::operator%=)
+            .def("__rmod__", &AtomicInt<Int>::rmod)
+            .def("__and__", &AtomicInt<Int>::operator&)
+            .def("__iand__", &AtomicInt<Int>::operator&=)
+            .def("__rand__", &AtomicInt<Int>::operator&)
+            .def("__or__", &AtomicInt<Int>::operator|)
+            .def("__ior__", &AtomicInt<Int>::operator|=)
+            .def("__ror__", &AtomicInt<Int>::operator|)
+            .def("__xor__", &AtomicInt<Int>::operator^)
+            .def("__ixor__", &AtomicInt<Int>::operator^=)
+            .def("__rxor__", &AtomicInt<Int>::operator^)
+            .def("__lt__", &AtomicInt<Int>::lt)
+            .def("__le__", &AtomicInt<Int>::le)
+            .def("__gt__", &AtomicInt<Int>::gt)
+            .def("__ge__", &AtomicInt<Int>::ge)
+            .def("__str__", &AtomicInt<Int>::str)
+            .def("__getstate__", &AtomicInt<Int>::getstate)
+            .def("__setstate__", &AtomicInt<Int>::setstate);
+    }
+
 private:
-    std::atomic<int64_t> value;
+    std::atomic<Int> value;
 };
 
 PYBIND11_MODULE(atomix_base, m, py::mod_gil_not_used()) {
@@ -171,52 +221,11 @@ PYBIND11_MODULE(atomix_base, m, py::mod_gil_not_used()) {
         .def("__getstate__", &AtomicFlag::getstate)
         .def("__setstate__", &AtomicFlag::setstate);
 
-    py::class_<AtomicInt>(m, "AtomicInt")
-        .def(py::init<int64_t>())
-        .def(py::init<>())
-        .def("is_lock_free", &AtomicInt::is_lock_free)
-        .def("load", &AtomicInt::load)
-        .def("store", &AtomicInt::store)
-        .def("fetch_add", &AtomicInt::fetch_add)
-        .def("fetch_sub", &AtomicInt::fetch_sub)
-        .def("exchange", &AtomicInt::exchange)
-        .def("compare_exchange", &AtomicInt::compare_exchange)
-        .def("compare_exchange_weak", &AtomicInt::compare_exchange_weak)
-        .def("__eq__", &AtomicInt::operator==)
-        .def("__neq__", &AtomicInt::operator!=)
-        .def("__add__", &AtomicInt::operator+)
-        .def("__iadd__", &AtomicInt::operator+=)
-        .def("__sub__", &AtomicInt::operator-)
-        .def("__isub__", &AtomicInt::operator-=)
-        .def("__rsub__", &AtomicInt::rsub)
-        .def("__mul__", &AtomicInt::operator*)
-        .def("__imul__", &AtomicInt::operator*=)
-        .def("__rmul__", &AtomicInt::operator*)
-        .def("__truediv__", &AtomicInt::operator/)
-        .def("__floordiv__", &AtomicInt::operator/)
-        .def("__ifloordiv__", &AtomicInt::operator/=)
-        .def("__itruediv__", &AtomicInt::operator/=)
-        .def("__rfloordiv__", &AtomicInt::rdiv)
-        .def("__rtruediv__", &AtomicInt::rdiv)
-        .def("__mod__", &AtomicInt::operator%)
-        .def("__imod__", &AtomicInt::operator%=)
-        .def("__rmod__", &AtomicInt::rmod)
-        .def("__and__", &AtomicInt::operator&)
-        .def("__iand__", &AtomicInt::operator&=)
-        .def("__rand__", &AtomicInt::operator&)
-        .def("__or__", &AtomicInt::operator|)
-        .def("__ior__", &AtomicInt::operator|=)
-        .def("__ror__", &AtomicInt::operator|)
-        .def("__xor__", &AtomicInt::operator^)
-        .def("__ixor__", &AtomicInt::operator^=)
-        .def("__rxor__", &AtomicInt::operator^)
-        .def("__lt__", &AtomicInt::lt)
-        .def("__le__", &AtomicInt::le)
-        .def("__gt__", &AtomicInt::gt)
-        .def("__ge__", &AtomicInt::ge)
-        .def("__str__", &AtomicInt::str)
-        .def("__getstate__", &AtomicInt::getstate)
-        .def("__setstate__", &AtomicInt::setstate);
+    AtomicInt<int64_t>.classDef(m, "AtomicInt64");
+    AtomicInt<int32_t>.classDef(m, "AtomicInt32");
+    AtomicInt<uint6_t4>.classDef(m, "AtomicUInt64");
+    AtomicInt<uint3_t2>.classDef(m, "AtomicUInt32");
+    // You could do this for all the int types if you wanted to...
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
